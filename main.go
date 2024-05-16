@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/agusheryanto182/go-health-record/config"
+	imageHandler "github.com/agusheryanto182/go-health-record/module/feature/image/handler"
+	imageSvc "github.com/agusheryanto182/go-health-record/module/feature/image/svc"
 	medicalHandler "github.com/agusheryanto182/go-health-record/module/feature/medical/handler"
 	medicalRepo "github.com/agusheryanto182/go-health-record/module/feature/medical/repo"
 	medicalSvc "github.com/agusheryanto182/go-health-record/module/feature/medical/svc"
+	awsCfg "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 
 	userHandler "github.com/agusheryanto182/go-health-record/module/feature/user/handler"
 	userRepo "github.com/agusheryanto182/go-health-record/module/feature/user/repo"
@@ -33,6 +38,23 @@ func main() {
 	jwt := jwt.NewJWTService(bootConfig)
 	valid := validator.New()
 
+	// AWS Config
+	cfg, err := awsCfg.LoadDefaultConfig(
+		context.Background(),
+		awsCfg.WithRegion("ap-southeast-1"),
+		awsCfg.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(
+				bootConfig.AWS.ID,
+				bootConfig.AWS.SecretKey,
+				"",
+			),
+		),
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	db, err := database.InitDatabase(bootConfig)
 	if err != nil {
 		log.Fatal(err)
@@ -57,13 +79,17 @@ func main() {
 	userSvc := userSvc.NewUserService(userRepo, valid, hash, jwt)
 	medicalSvc := medicalSvc.NewMedicalSvc(medicalRepo, valid)
 
+	imageSvc := imageSvc.NewImageSvc(cfg, bootConfig.AWS.BucketName)
+
 	// handler
 	userHandler := userHandler.NewUserHandler(userSvc)
 	medicalHandler := medicalHandler.NewMedicalHandler(medicalSvc)
+	imageHandler := imageHandler.NewImageHandler(imageSvc)
 
 	// routes
 	routes.UserRoute(app, userHandler, jwt, userSvc)
 	routes.MedicalRoute(app, medicalHandler, jwt, userSvc)
+	routes.ImageRoute(app, imageHandler, jwt, userSvc)
 
 	log.Fatal(app.Listen(":8080"))
 }

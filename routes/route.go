@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/agusheryanto182/go-health-record/module/feature/image"
 	"github.com/agusheryanto182/go-health-record/module/feature/medical"
 	"github.com/agusheryanto182/go-health-record/module/feature/user"
 	"github.com/agusheryanto182/go-health-record/module/middleware"
@@ -26,4 +27,9 @@ func MedicalRoute(app *fiber.App, handler medical.MedicalHandlerInterface, jwtSv
 	medical.Get("/record", middleware.Protected(jwtSvc, userSvc), handler.GetRecordByFilters)
 	medical.Get("/patient", middleware.Protected(jwtSvc, userSvc), handler.GetPatientByFilters)
 	medical.Post("/patient", middleware.Protected(jwtSvc, userSvc), handler.RegisterPatient)
+}
+
+func ImageRoute(app *fiber.App, handler image.ImageHandlerInterface, jwtSvc jwt.JWTInterface, userSvc user.UserSvcInterface) {
+	image := app.Group("/v1/image")
+	image.Post("", middleware.Protected(jwtSvc, userSvc), handler.UploadImage)
 }

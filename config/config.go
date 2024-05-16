@@ -10,7 +10,7 @@ type Global struct {
 	Database Database
 	Jwt      Jwt
 	Bcrypt   Bcrypt
-	S3       S3
+	AWS      AWS
 }
 
 type Bcrypt struct {
@@ -30,11 +30,11 @@ type Database struct {
 	Params   string `env:"DB_PARAMS,required"`
 }
 
-type S3 struct {
-	ID         string `env:"S3_ID,required"`
-	SecretKey  string `env:"S3_SECRET_KEY,required"`
-	BucketName string `env:"S3_BUCKET_NAME,required"`
-	Region     string `env:"S3_REGION,required"`
+type AWS struct {
+	ID         string `env:"AWS_ACCESS_KEY_ID,required"`
+	SecretKey  string `env:"AWS_SECRET_ACCESS_KEY,required"`
+	BucketName string `env:"AWS_S3_BUCKET_NAME,required"`
+	Region     string `env:"AWS_REGION,required"`
 }
 
 func NewConfig() *Global {
