@@ -44,7 +44,7 @@ func (u *UserRepository) DeleteUserNurse(req *dto.DeleteUserNurse) error {
 
 	rowsAffected, _ := res.RowsAffected()
 	if rowsAffected == 0 {
-		return response.NewBadRequestError("user is not nurse or already deleted")
+		return response.NewNotFoundError("user is not found or already deleted")
 	}
 
 	return nil

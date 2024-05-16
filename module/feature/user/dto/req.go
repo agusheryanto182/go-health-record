@@ -1,7 +1,7 @@
 package dto
 
 type UserFilter struct {
-	ID        string `json:"userId"`
+	ID        string
 	Limit     int    `json:"limit"`
 	Offset    int    `json:"offset"`
 	Name      string `json:"name"`

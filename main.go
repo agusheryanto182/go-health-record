@@ -4,6 +4,10 @@ import (
 	"log"
 
 	"github.com/agusheryanto182/go-health-record/config"
+	medicalHandler "github.com/agusheryanto182/go-health-record/module/feature/medical/handler"
+	medicalRepo "github.com/agusheryanto182/go-health-record/module/feature/medical/repo"
+	medicalSvc "github.com/agusheryanto182/go-health-record/module/feature/medical/svc"
+
 	userHandler "github.com/agusheryanto182/go-health-record/module/feature/user/handler"
 	userRepo "github.com/agusheryanto182/go-health-record/module/feature/user/repo"
 	userSvc "github.com/agusheryanto182/go-health-record/module/feature/user/svc"
@@ -47,15 +51,19 @@ func main() {
 
 	// repo
 	userRepo := userRepo.NewUserRepository(db)
+	medicalRepo := medicalRepo.NewMedicalRepo(db)
 
 	// svc
 	userSvc := userSvc.NewUserService(userRepo, valid, hash, jwt)
+	medicalSvc := medicalSvc.NewMedicalSvc(medicalRepo, valid)
 
 	// handler
 	userHandler := userHandler.NewUserHandler(userSvc)
+	medicalHandler := medicalHandler.NewMedicalHandler(medicalSvc)
 
 	// routes
 	routes.UserRoute(app, userHandler, jwt, userSvc)
+	routes.MedicalRoute(app, medicalHandler, jwt, userSvc)
 
 	log.Fatal(app.Listen(":8080"))
 }
