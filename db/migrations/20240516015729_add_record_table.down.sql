@@ -1,0 +1,8 @@
+DROP INDEX IF EXISTS idx_records_identity_number CASCADE;
+DROP INDEX IF EXISTS idx_records_deleted_at CASCADE;
+DROP INDEX IF EXISTS idx_records_created_by CASCADE;
+DROP INDEX IF EXISTS idx_records_created_at CASCADE;
+
+DROP TABLE IF EXISTS records CASCADE;
+DROP TABLE IF EXISTS patients CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
