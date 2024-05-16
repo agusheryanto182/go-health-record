@@ -35,3 +35,21 @@ type RegisterUser struct {
 	Role                string
 	IdentityCardScanImg string `json:"identityCardScanImg"`
 }
+
+type UpdateUserNurse struct {
+	ID   string
+	Nip  int64  `json:"nip" validate:"required,ValidateNipNurse"`
+	Name string `json:"name" validate:"required,min=5,max=50"`
+	Role string
+}
+
+type SetPasswordNurse struct {
+	ID       string
+	Password string `json:"password" validate:"required,min=5,max=33"`
+	Role     string
+}
+
+type DeleteUserNurse struct {
+	ID   string
+	Role string
+}

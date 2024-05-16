@@ -14,4 +14,7 @@ func UserRoute(app *fiber.App, handler user.UserHandlerInterface, jwtSvc jwt.JWT
 	user.Post("/nurse/login", handler.LoginNurse)
 	user.Post("/nurse/register", middleware.Protected(jwtSvc, userSvc), handler.RegisterNurse)
 	user.Get("", middleware.Protected(jwtSvc, userSvc), handler.GetUserByFilters)
+	user.Put("/nurse/:userId", middleware.Protected(jwtSvc, userSvc), handler.UpdateUserNurse)
+	user.Delete("/nurse/:userId", middleware.Protected(jwtSvc, userSvc), handler.DeleteUserNurse)
+	user.Post("/nurse/:userId/access", middleware.Protected(jwtSvc, userSvc), handler.SetPasswordNurse)
 }

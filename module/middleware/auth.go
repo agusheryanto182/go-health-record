@@ -26,13 +26,17 @@ func Protected(jwtService jwt.JWTInterface, userService user.UserSvcInterface) f
 			return response.NewUnauthorizedError("Access denied: invalid token")
 		}
 
-		user, err := userService.GetUserByID(payload.Id)
+		user, err := userService.CheckUserByIdAndRole(payload.Id, payload.Role)
 		if err != nil {
 			logrus.Errorf("Error retrieving user: %v", err)
-			return response.NewUnauthorizedError("Access denied: user not found")
+			return err
 		}
 
-		c.Locals("CurrentUser", user)
+		if !user {
+			return response.NewUnauthorizedError("Access denied: invalid token")
+		}
+
+		c.Locals("CurrentUser", payload)
 
 		return c.Next()
 	}

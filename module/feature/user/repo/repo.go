@@ -8,11 +8,95 @@ import (
 	entity "github.com/agusheryanto182/go-health-record/module/entities"
 	"github.com/agusheryanto182/go-health-record/module/feature/user"
 	"github.com/agusheryanto182/go-health-record/module/feature/user/dto"
+	"github.com/agusheryanto182/go-health-record/utils/response"
 	"github.com/jmoiron/sqlx"
 )
 
 type UserRepository struct {
 	db *sqlx.DB
+}
+
+// CheckUserByIdAndRole implements user.UserRepoInterface.
+func (u *UserRepository) CheckUserByIdAndRole(id string, role string) (bool, error) {
+	var exists bool
+	if err := u.db.Get(&exists, "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1 AND role = $2 AND deleted_at IS NULL)", id, role); err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
+// DeleteUserNurse implements user.UserRepoInterface.
+func (u *UserRepository) DeleteUserNurse(req *dto.DeleteUserNurse) error {
+	res, err := u.db.Exec(`
+        WITH checkUser AS (
+            SELECT id
+            FROM users
+            WHERE id = $1 AND role = $2 AND deleted_at IS NULL
+        )
+        UPDATE users
+        SET deleted_at = $3
+        FROM checkUser
+        WHERE users.id = checkUser.id
+    `, req.ID, req.Role, time.Now())
+	if err != nil {
+		return response.NewInternalServerError("errors when delete user : " + err.Error())
+	}
+
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		return response.NewBadRequestError("user is not nurse or already deleted")
+	}
+
+	return nil
+}
+
+// SetPasswordNurse implements user.UserRepoInterface.
+func (u *UserRepository) SetPasswordNurse(req *dto.SetPasswordNurse) error {
+	res, err := u.db.Exec("UPDATE users SET password = $1 WHERE id = $2 AND role = $3 AND deleted_at IS NULL", req.Password, req.ID, req.Role)
+	if err != nil {
+		return response.NewInternalServerError("errors when set password nurse : " + err.Error())
+	}
+
+	rowsAffected, _ := res.RowsAffected()
+	if rowsAffected == 0 {
+		return response.NewBadRequestError("user is not nurse")
+
+	}
+	return nil
+}
+
+func (u *UserRepository) UpdateUserNurse(req *dto.UpdateUserNurse) error {
+	var userExists, nipExists bool
+	err := u.db.QueryRow(`
+        WITH checkData AS (
+            SELECT
+                EXISTS(SELECT 1 FROM users WHERE id = $1 AND role = $2 AND deleted_at IS NULL) AS user_exists,
+                EXISTS(SELECT 1 FROM users WHERE nip = $3 AND role = $2 AND id != $1 AND deleted_at IS NULL) AS nip_exists
+        )
+        SELECT user_exists, nip_exists FROM checkData
+    `, req.ID, req.Role, req.Nip).Scan(&userExists, &nipExists)
+	if err != nil {
+		return err
+	}
+
+	if !userExists {
+		return response.NewNotFoundError("user not found")
+	}
+
+	if nipExists {
+		return response.NewConflictError("NIP already exists")
+	}
+
+	_, err = u.db.Exec(`
+        UPDATE users
+        SET nip = $1, name = $2
+        WHERE id = $3 AND role = $4 AND deleted_at IS NULL
+    `, req.Nip, req.Name, req.ID, req.Role)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetUser implements user.UserRepoInterface.
@@ -121,7 +205,7 @@ func (u *UserRepository) GetUserByFilters(filters *dto.UserFilter) ([]*dto.UserF
 // GetUserByID implements user.UserRepoInterface.
 func (u *UserRepository) GetUserByID(id string) (*entity.User, error) {
 	user := new(entity.User)
-	query := `SELECT * FROM users WHERE id = $1`
+	query := `SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL`
 	if err := u.db.Get(user, query, id); err != nil {
 		return nil, err
 	}
@@ -131,7 +215,7 @@ func (u *UserRepository) GetUserByID(id string) (*entity.User, error) {
 // IsNipExist implements user.UserRepoInterface.
 func (u *UserRepository) IsNipExist(nip int64) (bool, error) {
 	var exists bool
-	if err := u.db.Get(&exists, "SELECT EXISTS(SELECT 1 FROM users WHERE nip = $1)", nip); err != nil {
+	if err := u.db.Get(&exists, "SELECT EXISTS(SELECT 1 FROM users WHERE nip = $1 AND deleted_at IS NULL)", nip); err != nil {
 		return false, err
 	}
 	return exists, nil

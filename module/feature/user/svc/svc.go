@@ -19,6 +19,61 @@ type UserSvc struct {
 	jwtSvc    jwt.JWTInterface
 }
 
+// CheckUserByIdAndRole implements user.UserSvcInterface.
+func (u *UserSvc) CheckUserByIdAndRole(id string, role string) (bool, error) {
+	exists, err := u.userRepo.CheckUserByIdAndRole(id, role)
+	if err != nil {
+		return false, response.NewInternalServerError("errors when check user by id and role" + err.Error())
+	}
+	return exists, nil
+}
+
+// DeleteUserNurse implements user.UserSvcInterface.
+func (u *UserSvc) DeleteUserNurse(req *dto.DeleteUserNurse) error {
+	if err := u.userRepo.DeleteUserNurse(req); err != nil {
+		return err
+	}
+	return nil
+}
+
+// SetPasswordNurse implements user.UserSvcInterface.
+func (u *UserSvc) SetPasswordNurse(req *dto.SetPasswordNurse) error {
+	_, err := u.userRepo.CheckUserByIdAndRole(req.ID, req.Role)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return response.NewBadRequestError("user id is not nurse")
+		}
+		return response.NewInternalServerError("errors when check user by id and role" + err.Error())
+	}
+
+	if err := u.validator.Struct(req); err != nil {
+		return response.NewBadRequestError(err.Error())
+	}
+
+	hashed, err := u.hash.HashPassword(req.Password)
+	if err != nil {
+		return response.NewInternalServerError("errors when generate hashed password" + err.Error())
+	}
+
+	req.Password = hashed
+	if err := u.userRepo.SetPasswordNurse(req); err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateUserNurse implements user.UserSvcInterface.
+func (u *UserSvc) UpdateUserNurse(req *dto.UpdateUserNurse) error {
+	if err := u.validator.Struct(req); err != nil {
+		return response.NewBadRequestError(err.Error())
+	}
+
+	if err := u.userRepo.UpdateUserNurse(req); err != nil {
+		return err
+	}
+	return nil
+}
+
 // GetUserByID implements user.UserSvcInterface.
 func (u *UserSvc) GetUserByID(id string) (*entities.User, error) {
 	user := new(entities.User)
@@ -154,11 +209,13 @@ func (u *UserSvc) Register(req *dto.RegisterUser) (*dto.RegisterAndLoginUserResp
 		return nil, response.NewInternalServerError("errors when register user" + err.Error())
 	}
 
-	token, err := u.jwtSvc.GenerateJWT(id, payload.Name)
-	if err != nil {
-		return nil, response.NewInternalServerError("errors when generate token" + err.Error())
+	var token string
+	if req.Role == entities.Role.IT {
+		token, err = u.jwtSvc.GenerateJWT(id, payload.Name)
+		if err != nil {
+			return nil, response.NewInternalServerError("errors when generate token" + err.Error())
+		}
 	}
-
 	return &dto.RegisterAndLoginUserResponse{
 		ID:          id,
 		Nip:         req.Nip,
