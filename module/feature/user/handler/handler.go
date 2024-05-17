@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/agusheryanto182/go-health-record/module/entities"
@@ -159,6 +160,7 @@ func (u *UserHandler) RegisterIt(c *fiber.Ctx) error {
 		return response.NewBadRequestError(err.Error())
 	}
 
+	fmt.Println(req)
 	req.Role = entities.Role.IT
 	resp, err := u.userSvc.Register(req)
 	if err != nil {

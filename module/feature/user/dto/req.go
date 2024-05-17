@@ -10,18 +10,6 @@ type UserFilter struct {
 	CreatedAt string `json:"createdAt"`
 }
 
-type RegisterUserNurse struct {
-	Nip                 int64  `json:"nip" validate:"required,ValidateNipNurse"`
-	Name                string `json:"name" validate:"required,min=5,max=50"`
-	IdentityCardScanImg string `json:"identityCardScanImg" validate:"required,ValidateURL"`
-}
-
-type RegisterUserIT struct {
-	Nip      int64  `json:"nip" validate:"required,ValidateNipIt"`
-	Name     string `json:"name" validate:"required,min=5,max=50"`
-	Password string `json:"password" validate:"required,min=5,max=33"`
-}
-
 type LoginUser struct {
 	Nip      int64  `json:"nip"`
 	Password string `json:"password" validate:"required,min=5,max=33"`

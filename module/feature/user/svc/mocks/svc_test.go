@@ -57,32 +57,99 @@ func SetUpDependencies(t *testing.T) (*gomock.Controller, *repo.MockUserRepoInte
 
 }
 
-func TestUserSvc_CheckUserByIdAndRole_Error(t *testing.T) {
+func TestUserSvc_SetPasswordNurse(t *testing.T) {
 	mockCtrl, mockUserRepo, userService := SetUpDependencies(t)
 	defer mockCtrl.Finish()
 
-	id := "test_id"
-	role := "test_role"
-
-	Convey("When id and role is not found", t, func() {
-		mockUserRepo.EXPECT().CheckUserByIdAndRole(id, role).Return(false, nil)
-		exists, err := userService.CheckUserByIdAndRole(id, role)
+	Convey("When set password nurse success", t, func() {
+		mockUserRepo.EXPECT().CheckUserByIdAndRole(gomock.Any(), gomock.Any()).Return(true, nil)
+		mockUserRepo.EXPECT().SetPasswordNurse(gomock.Any()).Return(nil)
+		err := userService.SetPasswordNurse(nil)
 		So(err, ShouldBeNil)
-		So(exists, ShouldBeFalse)
 	})
 
-	Convey("When id and role is found", t, func() {
-		mockUserRepo.EXPECT().CheckUserByIdAndRole(id, role).Return(true, nil)
-		exists, err := userService.CheckUserByIdAndRole(id, role)
-		So(err, ShouldBeNil)
-		So(exists, ShouldBeTrue)
+	Convey("When user id is not nurse", t, func() {
+		mockUserRepo.EXPECT().CheckUserByIdAndRole(gomock.Any(), gomock.Any()).Return(false, nil)
+		err := userService.SetPasswordNurse(nil)
+		So(err, ShouldNotBeNil)
+		So(errors.Is(err, response.NewBadRequestError("user id is not nurse")), ShouldBeTrue)
 	})
 
 	Convey("When internal server error", t, func() {
-		mockUserRepo.EXPECT().CheckUserByIdAndRole(id, role).Return(false, response.NewInternalServerError(""))
-		exists, err := userService.CheckUserByIdAndRole(id, role)
+		mockUserRepo.EXPECT().CheckUserByIdAndRole(gomock.Any(), gomock.Any()).Return(true, response.NewInternalServerError(""))
+		err := userService.SetPasswordNurse(nil)
 		So(err, ShouldNotBeNil)
-		So(exists, ShouldBeFalse)
-		So(errors.Is(err, response.NewInternalServerError("")), ShouldNotBeNil)
+		So(errors.Is(err, response.NewInternalServerError("")), ShouldBeTrue)
 	})
+
+	Convey("When validation error", t, func() {
+		mockUserRepo.EXPECT().CheckUserByIdAndRole(gomock.Any(), gomock.Any()).Return(true, nil)
+		err := userService.SetPasswordNurse(nil)
+		So(err, ShouldNotBeNil)
+		So(errors.Is(err, response.NewBadRequestError("")), ShouldBeTrue)
+	})
+
+	Convey("When generate hashed password error", t, func() {
+		mockUserRepo.EXPECT().CheckUserByIdAndRole(gomock.Any(), gomock.Any()).Return(true, nil)
+		mockUserRepo.EXPECT().SetPasswordNurse(gomock.Any()).Return(response.NewInternalServerError(""))
+		err := userService.SetPasswordNurse(nil)
+		So(err, ShouldNotBeNil)
+		So(errors.Is(err, response.NewInternalServerError("")), ShouldBeTrue)
+	})
+
+}
+func TestUserSvc_DeleteUserNurse(t *testing.T) {
+	Convey("When delete user nurse", t, func() {
+		mockCtrl, mockUserRepo, userService := SetUpDependencies(t)
+		defer mockCtrl.Finish()
+
+		Convey("Case delete user nurse success", func() {
+			mockUserRepo.EXPECT().DeleteUserNurse(gomock.Any()).Return(nil)
+			err := userService.DeleteUserNurse(nil)
+			So(err, ShouldBeNil)
+		})
+
+		Convey("Case internal server error", func() {
+			mockUserRepo.EXPECT().DeleteUserNurse(gomock.Any()).Return(response.NewInternalServerError(""))
+			err := userService.DeleteUserNurse(nil)
+			So(err, ShouldNotBeNil)
+			So(errors.Is(err, response.NewInternalServerError("")), ShouldBeTrue)
+		})
+
+		Convey("Case user not found", func() {
+			mockUserRepo.EXPECT().DeleteUserNurse(gomock.Any()).Return(response.NewNotFoundError(""))
+			err := userService.DeleteUserNurse(nil)
+			So(err, ShouldNotBeNil)
+			So(errors.Is(err, response.NewNotFoundError("")), ShouldBeTrue)
+		})
+	})
+}
+
+func TestUserSvc_CheckUserByIdAndRole_Error(t *testing.T) {
+	Convey("When check user by id and role error", t, func() {
+		mockCtrl, mockUserRepo, userService := SetUpDependencies(t)
+		defer mockCtrl.Finish()
+
+		Convey("Case user not found", func() {
+			mockUserRepo.EXPECT().CheckUserByIdAndRole(gomock.Any(), gomock.Any()).Return(false, response.NewNotFoundError(""))
+			exists, err := userService.CheckUserByIdAndRole(gomock.Any().String(), gomock.Any().String())
+			So(errors.Is(err, response.NewNotFoundError("")), ShouldNotBeNil)
+			So(exists, ShouldBeFalse)
+		})
+
+		Convey("Case user found", func() {
+			mockUserRepo.EXPECT().CheckUserByIdAndRole(gomock.Any(), gomock.Any()).Return(true, nil)
+			exists, err := userService.CheckUserByIdAndRole(gomock.Any().String(), gomock.Any().String())
+			So(err, ShouldBeNil)
+			So(exists, ShouldBeTrue)
+		})
+
+		Convey("Case internal server error", func() {
+			mockUserRepo.EXPECT().CheckUserByIdAndRole(gomock.Any(), gomock.Any()).Return(false, response.NewInternalServerError(""))
+			exists, err := userService.CheckUserByIdAndRole(gomock.Any().String(), gomock.Any().String())
+			So(exists, ShouldBeFalse)
+			So(errors.Is(err, response.NewInternalServerError("")), ShouldNotBeNil)
+		})
+	})
+
 }
