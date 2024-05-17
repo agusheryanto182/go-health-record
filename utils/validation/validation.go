@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/sirupsen/logrus"
 )
 
 // func ValidateNipIt(fl validator.FieldLevel) bool {
@@ -26,7 +25,6 @@ func ValidateNipIt(fl validator.FieldLevel) bool {
 	nipInt := fl.Field().Interface().(int64)
 	nipStr := strconv.FormatInt(nipInt, 10)
 
-	logrus.Info(nipStr)
 	if len(nipStr) < 13 || len(nipStr) > 15 {
 		return false
 	}
