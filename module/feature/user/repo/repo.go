@@ -84,7 +84,7 @@ func (u *UserRepository) UpdateUserNurse(req *dto.UpdateUserNurse) error {
 	}
 
 	if nipExists {
-		return response.NewConflictError("NIP already exists")
+		return response.NewNotFoundError("NIP already exists")
 	}
 
 	_, err = u.db.Exec(`

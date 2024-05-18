@@ -64,6 +64,16 @@ func (u *UserSvc) SetPasswordNurse(req *dto.SetPasswordNurse) error {
 
 // UpdateUserNurse implements user.UserSvcInterface.
 func (u *UserSvc) UpdateUserNurse(req *dto.UpdateUserNurse) error {
+	isNipExists, err := u.userRepo.IsNipExist(req.Nip)
+	if err != nil {
+		return response.NewInternalServerError("errors when check nip" + err.Error())
+	}
+
+	// ???
+	if isNipExists {
+		return response.NewNotFoundError("NIP already exists")
+	}
+
 	if err := u.validator.Struct(req); err != nil {
 		return response.NewBadRequestError(err.Error())
 	}

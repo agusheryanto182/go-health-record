@@ -54,8 +54,8 @@ func (m *MedicalRepo) GetPatientByFilters(filters *dto.PatientFilter) ([]*entiti
 	params := make([]interface{}, 0)
 
 	if filters.IdentityNumber > 0 {
-		query += " AND identity_number = $" + strconv.Itoa(len(params)+1)
-		params = append(params, filters.IdentityNumber)
+		query += " AND CAST(identity_number AS TEXT) LIKE CAST($" + strconv.Itoa(len(params)+1) + " AS TEXT) || '%'"
+		params = append(params, strconv.Itoa(int(filters.IdentityNumber)))
 	}
 
 	nameCleaned := strings.ReplaceAll(filters.Name, "\"", "")

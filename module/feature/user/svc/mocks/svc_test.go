@@ -40,6 +40,67 @@ func SetUpDependencies(t *testing.T) (*gomock.Controller, *repo.MockUserRepoInte
 
 }
 
+func TestUserSvc_GetUserByID(t *testing.T) {
+	Convey("When get user by id", t, func() {
+		mockCtrl, mockUserRepo, userService, _, _ := SetUpDependencies(t)
+		defer mockCtrl.Finish()
+
+		Convey("Case user not found", func() {
+			mockUserRepo.EXPECT().GetUserByID(gomock.Any()).Return(nil, errors.New("sql: no rows in result set"))
+			res, err := userService.GetUserByID("123456789")
+			So(errors.Is(err, response.NewNotFoundError("")), ShouldNotBeNil)
+			So(res, ShouldBeNil)
+		})
+
+		Convey("Case internal server error", func() {
+			mockUserRepo.EXPECT().GetUserByID(gomock.Any()).Return(nil, response.NewInternalServerError(""))
+			res, err := userService.GetUserByID("123456789")
+			So(errors.Is(err, response.NewInternalServerError("")), ShouldNotBeNil)
+			So(res, ShouldBeNil)
+		})
+
+		Convey("Case success", func() {
+			mockUserRepo.EXPECT().GetUserByID(gomock.Any()).Return(&entities.User{
+				Id:   "123456789",
+				Nip:  615220010298712,
+				Name: "Suga",
+				Role: "it",
+			}, nil)
+			res, err := userService.GetUserByID("123456789")
+			So(err, ShouldBeNil)
+			So(res, ShouldNotBeNil)
+			So(res.Id, ShouldEqual, "123456789")
+			So(res.Name, ShouldEqual, "Suga")
+			So(res.Nip, ShouldEqual, 615220010298712)
+			So(res.Role, ShouldEqual, "it")
+		})
+	})
+}
+
+func TestUserSvc_GetUserByFilters(t *testing.T) {
+	Convey("When get user by filters", t, func() {
+		mockCtrl, mockUserRepo, userService, _, _ := SetUpDependencies(t)
+		defer mockCtrl.Finish()
+
+		Convey("Case get by name", func() {
+			mockUserRepo.EXPECT().GetUserByFilters(gomock.Any()).Return([]*dto.UserFilterResponses{
+				{
+					Id:   "123456789",
+					Nip:  615220010298712,
+					Name: "Suga",
+				},
+			}, nil)
+			res, err := userService.GetUserByFilters(&dto.UserFilter{
+				Name: "Suga",
+			})
+			So(err, ShouldBeNil)
+			So(res, ShouldNotBeNil)
+			So(len(res), ShouldEqual, 1)
+			So(res[0].Name, ShouldEqual, "Suga")
+		})
+	})
+}
+
 func TestUserSvc_Login(t *testing.T) {
 	Convey("When login", t, func() {
 		mockCtrl, mockUserRepo, userService, mockHash, mockJWT := SetUpDependencies(t)
