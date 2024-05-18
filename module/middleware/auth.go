@@ -7,7 +7,6 @@ import (
 	"github.com/agusheryanto182/go-health-record/utils/jwt"
 	"github.com/agusheryanto182/go-health-record/utils/response"
 	"github.com/gofiber/fiber/v2"
-	"github.com/sirupsen/logrus"
 )
 
 func Protected(jwtService jwt.JWTInterface, userService user.UserSvcInterface) fiber.Handler {
@@ -22,13 +21,11 @@ func Protected(jwtService jwt.JWTInterface, userService user.UserSvcInterface) f
 
 		payload, err := jwtService.ValidateToken(tokenString)
 		if err != nil {
-			logrus.Errorf("Error validating token: %v", err)
 			return response.NewUnauthorizedError("Access denied: invalid token")
 		}
 
 		user, err := userService.CheckUserByIdAndRole(payload.Id, payload.Role)
 		if err != nil {
-			logrus.Errorf("Error retrieving user: %v", err)
 			return err
 		}
 

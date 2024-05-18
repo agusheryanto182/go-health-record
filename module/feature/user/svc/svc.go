@@ -211,7 +211,7 @@ func (u *UserSvc) Register(req *dto.RegisterUser) (*dto.RegisterAndLoginUserResp
 
 	var token string
 	if req.Role == entities.Role.IT {
-		token, err = u.jwtSvc.GenerateJWT(id, payload.Name)
+		token, err = u.jwtSvc.GenerateJWT(id, payload.Role)
 		if err != nil {
 			return nil, response.NewInternalServerError("errors when generate token" + err.Error())
 		}

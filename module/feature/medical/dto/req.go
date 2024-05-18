@@ -5,7 +5,7 @@ type RegisterPatient struct {
 	IdentityNumberStr   string `validate:"required,min=16,max=16"`
 	PhoneNumber         string `json:"phoneNumber" validate:"required,startswith=+62,min=10,max=15"`
 	Name                string `json:"name" validate:"required,min=5,max=30"`
-	BirthDate           string `json:"birthDate" validate:"required,datetime=2006-01-02"`
+	BirthDate           string `json:"birthDate" validate:"required,datetime=2006-01-02T15:04:05.000Z"`
 	Gender              string `json:"gender" validate:"required,oneof=male female"`
 	IdentityCardScanImg string `json:"identityCardScanImg" validate:"required,ValidateURL"`
 }

@@ -12,8 +12,13 @@ func ErrorHandler(ctx *fiber.Ctx, err error) error {
 		return ctx.Status(code).JSON(fiber.Map{
 			"message": customError.Error(),
 		})
-	} else if code < 400 {
-		code = fiber.StatusInternalServerError
+	}
+
+	if e, ok := err.(*fiber.Error); ok {
+		code = e.Code
+		return ctx.Status(code).JSON(fiber.Map{
+			"message": e.Message,
+		})
 	}
 
 	return ctx.Status(code).JSON(fiber.Map{
