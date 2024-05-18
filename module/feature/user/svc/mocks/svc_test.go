@@ -1,9 +1,11 @@
 package svc_test
 
 import (
+	"database/sql"
 	"errors"
 	"testing"
 
+	"github.com/agusheryanto182/go-health-record/module/entities"
 	dto "github.com/agusheryanto182/go-health-record/module/feature/user/dto"
 	repo "github.com/agusheryanto182/go-health-record/module/feature/user/repo/mocks"
 	"github.com/agusheryanto182/go-health-record/module/feature/user/svc"
@@ -38,8 +40,105 @@ func SetUpDependencies(t *testing.T) (*gomock.Controller, *repo.MockUserRepoInte
 
 }
 
-func TestUserSvc_RegisterUserIT(t *testing.T) {
-	Convey("When register user IT", t, func() {
+func TestUserSvc_Login(t *testing.T) {
+	Convey("When login", t, func() {
+		mockCtrl, mockUserRepo, userService, mockHash, mockJWT := SetUpDependencies(t)
+		defer mockCtrl.Finish()
+
+		positifCase := &dto.LoginUser{
+			Nip:      615220010298712,
+			Password: "password123",
+			Role:     "it",
+		}
+
+		resGetUser := &entities.User{
+			Id:       "123456789",
+			Nip:      615220010298712,
+			Name:     "Suga",
+			Role:     "it",
+			Password: sql.NullString{String: "passwordHashed", Valid: true},
+		}
+
+		resGetUserNurseNotHavingAccess := &entities.User{
+			Id:       "123456789",
+			Nip:      615220010298712,
+			Name:     "Suga",
+			Role:     "it",
+			Password: sql.NullString{String: "", Valid: false},
+		}
+
+		negatifCase := &dto.LoginUser{}
+
+		Convey("Case request does not pass validation", func() {
+			res, err := userService.Login(negatifCase)
+			So(errors.Is(err, response.NewBadRequestError("")), ShouldNotBeNil)
+			So(res, ShouldBeNil)
+		})
+
+		Convey("Case internal server error, when get user", func() {
+			mockUserRepo.EXPECT().GetUser(gomock.Any(), gomock.Any()).Return(nil, response.NewInternalServerError(""))
+			res, err := userService.Login(positifCase)
+			So(errors.Is(err, response.NewInternalServerError("")), ShouldNotBeNil)
+			So(res, ShouldBeNil)
+		})
+
+		Convey("Case user not found", func() {
+			mockUserRepo.EXPECT().GetUser(gomock.Any(), gomock.Any()).Return(nil, response.NewNotFoundError(""))
+			res, err := userService.Login(positifCase)
+			So(errors.Is(err, response.NewNotFoundError("")), ShouldNotBeNil)
+			So(res, ShouldBeNil)
+		})
+
+		Convey("Case password not match", func() {
+			mockUserRepo.EXPECT().GetUser(gomock.Any(), gomock.Any()).Return(resGetUser, nil)
+			mockHash.EXPECT().CheckPasswordHash(gomock.Any(), gomock.Any()).Return(false)
+			res, err := userService.Login(positifCase)
+			So(errors.Is(err, response.NewBadRequestError("")), ShouldNotBeNil)
+			So(res, ShouldBeNil)
+			So(resGetUser.Nip, ShouldEqual, positifCase.Nip)
+			So(resGetUser.Role, ShouldEqual, positifCase.Role)
+			So(resGetUser.Password.String, ShouldNotBeNil)
+		})
+
+		Convey("Case user is not having access", func() {
+			mockUserRepo.EXPECT().GetUser(gomock.Any(), gomock.Any()).Return(resGetUserNurseNotHavingAccess, nil)
+			res, err := userService.Login(positifCase)
+			So(errors.Is(err, response.NewBadRequestError("")), ShouldNotBeNil)
+			So(res, ShouldBeNil)
+			So(resGetUserNurseNotHavingAccess.Nip, ShouldEqual, positifCase.Nip)
+			So(resGetUserNurseNotHavingAccess.Role, ShouldEqual, positifCase.Role)
+			So(resGetUserNurseNotHavingAccess.Password.String, ShouldEqual, "")
+		})
+
+		Convey("Case internal server error, when generate jwt", func() {
+			mockUserRepo.EXPECT().GetUser(gomock.Any(), gomock.Any()).Return(resGetUser, nil)
+			mockHash.EXPECT().CheckPasswordHash(gomock.Any(), gomock.Any()).Return(true)
+			mockJWT.EXPECT().GenerateJWT(gomock.Any(), gomock.Any()).Return("", response.NewInternalServerError(""))
+			res, err := userService.Login(positifCase)
+			So(errors.Is(err, response.NewInternalServerError("")), ShouldNotBeNil)
+			So(res, ShouldBeNil)
+			So(resGetUser.Nip, ShouldEqual, positifCase.Nip)
+			So(resGetUser.Role, ShouldEqual, positifCase.Role)
+			So(resGetUser.Password.String, ShouldNotBeNil)
+		})
+
+		Convey("Case success", func() {
+			mockUserRepo.EXPECT().GetUser(gomock.Any(), gomock.Any()).Return(resGetUser, nil)
+			mockHash.EXPECT().CheckPasswordHash(gomock.Any(), gomock.Any()).Return(true)
+			mockJWT.EXPECT().GenerateJWT(gomock.Any(), gomock.Any()).Return("token", nil)
+			res, err := userService.Login(positifCase)
+			So(err, ShouldBeNil)
+			So(res, ShouldNotBeNil)
+			So(res.ID, ShouldEqual, resGetUser.Id)
+			So(res.Nip, ShouldEqual, resGetUser.Nip)
+			So(res.Name, ShouldEqual, resGetUser.Name)
+			So(res.AccessToken, ShouldEqual, "token")
+		})
+	})
+}
+
+func TestUserSvc_RegisterUser(t *testing.T) {
+	Convey("When register user", t, func() {
 		mockCtrl, mockUserRepo, userService, mockHash, mockJWT := SetUpDependencies(t)
 		defer mockCtrl.Finish()
 
@@ -97,6 +196,20 @@ func TestUserSvc_RegisterUserIT(t *testing.T) {
 			res, err := userService.Register(positifCase)
 			So(errors.Is(err, response.NewInternalServerError("")), ShouldNotBeNil)
 			So(res, ShouldBeNil)
+		})
+
+		Convey("Case success", func() {
+			mockUserRepo.EXPECT().IsNipExist(gomock.Any()).Return(false, nil)
+			mockHash.EXPECT().HashPassword(gomock.Any()).Return("hashed", nil)
+			mockUserRepo.EXPECT().Register(gomock.Any()).Return("id", nil)
+			mockJWT.EXPECT().GenerateJWT(gomock.Any(), gomock.Any()).Return("token", nil)
+			res, err := userService.Register(positifCase)
+			So(err, ShouldBeNil)
+			So(res, ShouldNotBeNil)
+			So(res.ID, ShouldEqual, "id")
+			So(res.Nip, ShouldEqual, positifCase.Nip)
+			So(res.Name, ShouldEqual, positifCase.Name)
+			So(res.AccessToken, ShouldEqual, "token")
 		})
 	})
 }
