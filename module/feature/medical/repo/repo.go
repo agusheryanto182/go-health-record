@@ -37,7 +37,7 @@ func (m *MedicalRepo) CreateRecord(payload *dto.CreateRecord) error {
 
 	rowsAffected, _ := res.RowsAffected()
 	if rowsAffected == 0 {
-		return response.NewBadRequestError("patient not found")
+		return response.NewNotFoundError("patient not found")
 	}
 
 	return nil
@@ -116,7 +116,7 @@ func (m *MedicalRepo) GetPatientByFilters(filters *dto.PatientFilter) ([]*entiti
 			return nil, err
 		}
 
-		patient.CreatedAt = createdAtTemp.Format(time.RFC3339)
+		patient.CreatedAt = createdAtTemp.Format("2006-01-02T15:04:05.000000000Z")
 
 		patients = append(patients, patient)
 	}
@@ -208,7 +208,7 @@ func (m *MedicalRepo) GetRecordByFilters(filters *dto.RecordFilter) ([]*dto.Reco
 		); err != nil {
 			return nil, err
 		}
-		record.CreatedAt = createdAtTemp.Format(time.RFC3339)
+		record.CreatedAt = createdAtTemp.Format("2006-01-02T15:04:05.000000000Z")
 
 		records = append(records, record)
 	}

@@ -71,7 +71,7 @@ func (u *UserRepository) UpdateUserNurse(req *dto.UpdateUserNurse) error {
         WITH checkData AS (
             SELECT
                 EXISTS(SELECT 1 FROM users WHERE id = $1 AND role = $2 AND deleted_at IS NULL) AS user_exists,
-                EXISTS(SELECT 1 FROM users WHERE nip = $3 AND role = $2 AND id != $1 AND deleted_at IS NULL) AS nip_exists
+                EXISTS(SELECT 1 FROM users WHERE nip = $3 AND role = $2 AND deleted_at IS NULL) AS nip_exists
         )
         SELECT user_exists, nip_exists FROM checkData
     `, req.ID, req.Role, req.Nip).Scan(&userExists, &nipExists)
@@ -84,7 +84,7 @@ func (u *UserRepository) UpdateUserNurse(req *dto.UpdateUserNurse) error {
 	}
 
 	if nipExists {
-		return response.NewNotFoundError("NIP already exists")
+		return response.NewConflictError("NIP already exists")
 	}
 
 	_, err = u.db.Exec(`
@@ -195,7 +195,7 @@ func (u *UserRepository) GetUserByFilters(filters *dto.UserFilter) ([]*dto.UserF
 			return nil, err
 		}
 
-		user.CreatedAt = tempCreatedAt.Format(time.RFC3339)
+		user.CreatedAt = tempCreatedAt.Format("2006-01-02T15:04:05.000000000Z")
 		users = append(users, user)
 	}
 
