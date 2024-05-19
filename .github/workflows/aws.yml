@@ -7,9 +7,9 @@ on:
 env:
   AWS_REGION: ap-southeast-1
   ECR_REPOSITORY: agusheryanto182-repository
-  ECS_SERVICE: db.t2.micro
-  ECS_CLUSTER: 560918124458.dkr.ecr.ap-southeast-1.amazonaws.com/agusheryanto182-repository
-  CONTAINER_NAME: health-record-agusheryanto182
+  ECS_SERVICE: projectsprint-agusheryanto182-service
+  ECS_CLUSTER: projectsprint-cluster
+  CONTAINER_NAME: agusheryanto182-container
 
 permissions:
   contents: read
